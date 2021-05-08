@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 from pprint import pprint
 
 
@@ -12,11 +12,11 @@ class InfectionState:
     DEAD = 5
 
     P_TRANSITIONS = {
-        UNINFECTED: {PRESYMPTOMS: 0.01},
-        PRESYMPTOMS: {UNINFECTED: 0.25, SYMPTOMS: 0.7, ISOLATED: 0.05},
-        SYMPTOMS: {UNINFECTED: 0.05, PRESYMPTOMS: 0.05, ISOLATED: 0.79, HOSPITALIZED: 0.1, DEAD: 0.01},
-        ISOLATED: {HOSPITALIZED: 0.05, DEAD: 0.01},
-        HOSPITALIZED: {DEAD: 0.02}
+        UNINFECTED: {PRESYMPTOMS: 0.0001},
+        PRESYMPTOMS: {UNINFECTED: 0.05, SYMPTOMS: 0.5, ISOLATED: 0.01},
+        SYMPTOMS: {UNINFECTED: 0.1, PRESYMPTOMS: 0.05, ISOLATED: 0.5, HOSPITALIZED: 0.05, DEAD: 0.001},
+        ISOLATED: {HOSPITALIZED: 0.05, DEAD: 0.001},
+        HOSPITALIZED: {DEAD: 0.1}
     }
 
 
@@ -29,25 +29,30 @@ class Citizen:
 
 
 class Location:
-    def __init__(self, name, n_min, n_max, is_indoor, is_masked, is_home):
+    def __init__(self, name, n_min, n_max, is_indoor, mask_compliance, is_home):
         self.name = name
         self.n_min = n_min
         self.n_max = n_max
         self.is_indoor = is_indoor
-        self.is_masked = is_masked
+        self.mask_compliance = mask_compliance
         self.is_home = is_home
 
 
 class State:
     def __init__(self,
-                 citizen_location_map: Dict[int, Location],
-                 location_citizen_map: Dict[str, Citizen]):
+                 citizens: List[Citizen],
+                 locations: List[Location],
+                 citizen_location_map: Dict[int, str]):
         self.citizen_location_map = citizen_location_map
-        self.location_citizen_map = location_citizen_map
-        self.citizens = []
-        for x in self.location_citizen_map.values():
-            self.citizens.extend(x)
-        self.locations = [x for x in self.citizen_location_map.values()]
+        self.citizens = citizens
+        self.citizens_dict = {c.id: c for c in self.citizens}
+        self.locations = locations
+        self.locations_dict = {l.name: l for l in self.locations}
+        self.location_citizen_map = {x.name: [] for x in self.locations}
+        if len(list(citizen_location_map.keys())):
+            for i, name in self.citizen_location_map.items():
+                if name:
+                    self.location_citizen_map[name].append(i)
 
     def pprint(self):
         location_map = {name: len(citizens) for name, citizens in self.location_citizen_map.items() if not name.startswith('Home')}
@@ -68,11 +73,16 @@ class State:
 
 
 class DayStats:
-    def __init__(self, n_citizens, n_infected, n_hospitalized, n_dead, n_new_infections, n_new_deaths, n_vaxxed):
-        self.n_citizens = n_citizens
+    def __init__(self, n_infected=0, n_hospitalized=0, n_dead=0, n_vaxxed=0, n_new_infections=0, n_new_recoveries=0,
+                 n_new_deaths=0, n_new_vaxxed=0):
         self.n_infected = n_infected
         self.n_hospitalized = n_hospitalized
         self.n_dead = n_dead
-        self.new_infections = n_new_infections
-        self.n_new_deaths = n_new_deaths
         self.n_vaxxed = n_vaxxed
+        self.n_new_infections = n_new_infections
+        self.n_new_recoveries = n_new_recoveries
+        self.n_new_deaths = n_new_deaths
+        self.n_new_vaxxed = n_new_vaxxed
+
+    def __str__(self):
+        return str(self.__dict__)
